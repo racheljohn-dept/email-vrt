@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Visual Email Tester</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+--bg:        #f5f4f0;
+--surface:   #ffffff;
+--surface2:  #f5f4f0;
+--surface3:  #e1e4e8;
+--border:    #e1e4e8;
+--border2:   #e1e4e8;
+--text:      #24292e;
+--muted:     #586069;
+--muted2:    #586069;
+--accent:    #0366d6;
+--accent-bg: rgba(3,102,214,0.1);
+--pass:      #28a745;
+--pass-bg:   rgba(40,167,69,0.1);
+--pass-bd:   rgba(40,167,69,0.3);
+--fail:      #d73a49;
+--fail-bg:   rgba(215,58,73,0.1);
+--fail-bd:   rgba(215,58,73,0.3);
+--skip-bg:   rgba(88,96,105,0.08);
+--skip-bd:   rgba(88,96,105,0.25);
+--skip:      #586069;
+--warn:      #b08800;
+--warn-bg:   rgba(255,193,7,0.15);
+--shadow:    none;
+--shadow-md: 0 1px 3px rgba(0,0,0,0.08);
+--mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+--sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+--radius: 6px;
+--radius-lg: 8px;
+--radius-xl: 8px;
+  }
+
+@media (prefers-color-scheme: dark) {
+:root {
+--bg:        #0d1117;
+--surface:   #161b22;
+--surface2:  #0d1117;
+--surface3:  #30363d;
+--border:    #30363d;
+--border2:   #30363d;
+--text:      #e6edf3;
+--muted:     #8b949e;
+--muted2:    #8b949e;
+--accent:    #58a6ff;
+--accent-bg: rgba(88,166,255,0.1);
+--pass:      #3fb950;
+--pass-bg:   rgba(63,185,80,0.1);
+--pass-bd:   rgba(63,185,80,0.3);
+--fail:      #f85149;
+--fail-bg:   rgba(248,81,73,0.1);
+--fail-bd:   rgba(248,81,73,0.3);
+--skip-bg:   rgba(139,148,158,0.08);
+--skip-bd:   rgba(139,148,158,0.25);
+--skip:      #8b949e;
+--warn:      #d29922;
+--warn-bg:   rgba(210,153,34,0.15);
+--shadow:    none;
+--shadow-md: 0 1px 3px rgba(0,0,0,0.3);
+    }
+  }
+
+html, body {
+height: 100%;
+background: var(--bg);
+color: var(--text);
+font-family: var(--sans);
+font-size: 15px;
+line-height: 1.6;
+-webkit-font-smoothing: antialiased;
+  }
+
+.shell {
+display: grid;
+grid-template-columns: 220px 1fr;
+grid-template-rows: 52px 1fr;
+height: 100vh;
+overflow: hidden;
+  }
+
+/* Topbar */
+.topbar {
+grid-column: 1 / -1;
+display: flex;
+align-items: center;
+gap: 16px;
+padding: 0 20px;
+background: var(--surface);
+border-bottom: 1px solid var(--border);
+box-shadow: var(--shadow);
+  }
+.logo {
+font-family: var(--mono);
+font-size: 13px;
+font-weight: 500;
+color: var(--text);
+display: flex;
+align-items: center;
+gap: 8px;
+  }
+.logo-mark {
+width: 22px; height: 22px;
+background: var(--accent);
+border-radius: 5px;
+display: flex; align-items: center; justify-content: center;
+  }
+.logo-mark svg { width: 11px; height: 11px; fill: #fff; }
+.topbar-nav { display: flex; gap: 2px; margin-left: 12px; }
+.nav-btn {
+font-family: var(--sans); font-size: 13px; font-weight: 400;
+background: none; border: none; border-radius: var(--radius);
+padding: 5px 11px; color: var(--muted2); cursor: pointer;
+transition: background 0.13s, color 0.13s;
+  }
+.nav-btn:hover { background: var(--surface2); color: var(--text); }
+.nav-btn.active { background: var(--surface2); color: var(--text); font-weight: 500; }
+.topbar-right { margin-left: auto; }
+.running-badge {
+display: none; align-items: center; gap: 6px;
+font-size: 12px; color: var(--warn);
+background: var(--warn-bg); padding: 4px 10px; border-radius: 20px;
+  }
+.running-badge.show { display: flex; }
+.pulse-dot {
+width: 6px; height: 6px; border-radius: 50%;
+background: currentColor;
+animation: blink 1.2s ease-in-out infinite;
+  }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* Sidebar */
+.sidebar {
+background: var(--surface);
+border-right: 1px solid var(--border);
+display: flex; flex-direction: column; overflow: hidden;
+  }
+.sidebar-hd {
+padding: 14px 14px 8px;
+font-size: 11px; font-weight: 600;
+letter-spacing: 0.06em; text-transform: uppercase;
+color: var(--muted);
+  }
+.run-list { flex: 1; overflow-y: auto; }
+.run-list::-webkit-scrollbar { width: 4px; }
+.run-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.run-item {
+padding: 9px 14px; border-bottom: 1px solid var(--border);
+cursor: pointer; transition: background 0.1s;
+  }
+.run-item:hover { background: var(--surface2); }
+.run-item.active {
+background: var(--accent-bg);
+border-left: 2px solid var(--accent); padding-left: 12px;
+  }
+.run-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.run-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 12px; color: var(--muted); }
+.mini-bars { display: flex; gap: 2px; align-items: center; margin-left: auto; }
+.mbar { height: 5px; border-radius: 2px; min-width: 3px; }
+.mbar-pass { background: var(--pass); }
+.mbar-fail { background: var(--fail); }
+
+/* Main */
+.main { overflow-y: auto; }
+.main::-webkit-scrollbar { width: 6px; }
+.main::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+.panel { display: none; padding: 28px 28px 48px; max-width: 860px; }
+.panel.active { display: block; }
+
+/* Forms */
+.pg-title { font-size: 19px; font-weight: 600; margin-bottom: 4px; }
+.pg-sub { font-size: 14px; color: var(--muted2); margin-bottom: 24px; }
+
+.card {
+background: var(--surface);
+border: 1px solid var(--border);
+border-radius: var(--radius-lg);
+padding: 20px; margin-bottom: 12px;
+box-shadow: var(--shadow);
+  }
+.card-hd {
+font-size: 11px; font-weight: 600;
+letter-spacing: 0.06em; text-transform: uppercase;
+color: var(--muted); margin-bottom: 16px;
+  }
+.fg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.fg.one { grid-template-columns: 1fr; }
+
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: 12px; font-weight: 600; color: var(--text); }
+.field input, .field select {
+background: var(--surface2);
+border: 1px solid var(--border2);
+border-radius: var(--radius);
+padding: 9px 11px;
+font-family: var(--sans); font-size: 14px; color: var(--text);
+outline: none;
+transition: border-color 0.15s, box-shadow 0.15s;
+width: 100%;
+  }
+.field input:focus, .field select:focus {
+border-color: var(--accent);
+box-shadow: 0 0 0 3px var(--accent-bg);
+  }
+.field input::placeholder { color: var(--muted); }
+.field.mono input { font-family: var(--mono); font-size: 13px; }
+
+.hint { font-size: 12.5px; color: var(--muted2); margin-top: 8px; line-height: 1.55; }
+.hint code {
+font-family: var(--mono); font-size: 11px;
+background: var(--surface2); border: 1px solid var(--border);
+padding: 1px 5px; border-radius: 4px;
+  }
+
+/* Slider */
+.slider-row { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+.slider-row input[type=range] {
+flex: 1; -webkit-appearance: none; appearance: none;
+height: 4px; background: var(--surface3);
+border-radius: 2px; outline: none; border: none; cursor: pointer;
+  }
+.slider-row input[type=range]::-webkit-slider-thumb {
+-webkit-appearance: none; appearance: none;
+width: 18px; height: 18px; border-radius: 50%;
+background: var(--surface); border: 2px solid var(--accent);
+cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+.slider-val { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--accent); min-width: 36px; text-align: right; }
+
+.run-cta {
+width: 100%; padding: 11px;
+background: var(--accent); color: #fff; border: none;
+border-radius: var(--radius);
+font-family: var(--sans); font-size: 13px; font-weight: 500;
+cursor: pointer; margin-top: 4px;
+display: flex; align-items: center; justify-content: center; gap: 7px;
+transition: opacity 0.15s, transform 0.1s;
+  }
+.run-cta:hover { opacity: 0.88; }
+.run-cta:active { transform: scale(0.99); }
+.run-cta:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Results */
+.res-title { font-size: 17px; font-weight: 500; }
+.res-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.pdf-link {
+display: none; align-items: center; gap: 6px; width: fit-content;
+padding: 7px 14px; margin-top: 10px;
+background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius);
+color: var(--accent); font-size: 12px; font-weight: 500; text-decoration: none;
+font-family: var(--sans); cursor: pointer;
+transition: border-color 0.13s;
+  }
+.pdf-link.show { display: inline-flex; }
+.pdf-link:hover { border-color: var(--accent); }
+.summary-strip { display: flex; gap: 8px; margin: 14px 0 20px; flex-wrap: wrap; }
+.chip {
+display: flex; align-items: center; gap: 6px;
+padding: 6px 13px; border-radius: 20px;
+font-size: 13px; font-weight: 600;
+border: 1px solid transparent;
+  }
+.chip-pass { background: var(--pass-bg); color: var(--pass); border-color: var(--pass-bd); }
+.chip-fail { background: var(--fail-bg); color: var(--fail); border-color: var(--fail-bd); }
+.chip-skip { background: var(--skip-bg); color: var(--skip); border-color: var(--skip-bd); }
+.chip-run  { background: var(--warn-bg); color: var(--warn); }
+.chip-dot  { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+.filter-row { display: flex; gap: 4px; margin-bottom: 16px; }
+.ftab {
+font-size: 13px; font-weight: 500; padding: 5px 13px; border-radius: 20px;
+border: 1px solid var(--border2); background: none; color: var(--muted2);
+cursor: pointer; transition: all 0.13s;
+  }
+.ftab:hover { background: var(--surface2); color: var(--text); }
+.ftab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+.client-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 10px; }
+.ccard {
+background: var(--surface); border: 1px solid var(--border);
+border-radius: var(--radius-lg); overflow: hidden;
+box-shadow: var(--shadow); transition: box-shadow 0.15s, transform 0.15s;
+  }
+.ccard:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.ccard.fail { border-color: var(--fail-bd); }
+.ccard.pass { border-color: var(--pass-bd); }
+
+.cthumb {
+height: 110px; background: var(--surface2);
+display: flex; align-items: center; justify-content: center;
+position: relative; border-bottom: 1px solid var(--border);
+font-size: 11px; color: var(--muted); font-family: var(--mono);
+overflow: hidden;
+  }
+.cthumb-img {
+width: 100%; height: 100%; object-fit: cover; object-position: top;
+display: block;
+  }
+.thumb-toggle {
+position: absolute; bottom: 6px; left: 6px;
+font-family: var(--mono); font-size: 10px; font-weight: 600;
+padding: 3px 8px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.3);
+background: rgba(0,0,0,0.6); color: #fff; cursor: pointer;
+  }
+.thumb-toggle:hover { background: rgba(0,0,0,0.8); }
+.dtag {
+position: absolute; top: 7px; right: 7px;
+font-family: var(--mono); font-size: 11px; font-weight: 600;
+padding: 2px 8px; border-radius: 20px; border: 1px solid transparent;
+  }
+.dtag-pass { background: var(--pass-bg); color: var(--pass); border-color: var(--pass-bd); }
+.dtag-fail { background: var(--fail-bg); color: var(--fail); border-color: var(--fail-bd); }
+.dtag-skip { background: var(--skip-bg); color: var(--skip); border-color: var(--skip-bd); }
+
+.cbody { padding: 10px 12px 12px; }
+.cname { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.csub  { font-size: 12px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.crow  { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.spill { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; border: 1px solid transparent; }
+.spill-pass { background: var(--pass-bg); color: var(--pass); border-color: var(--pass-bd); }
+.spill-fail { background: var(--fail-bg); color: var(--fail); border-color: var(--fail-bd); }
+.spill-skip { background: var(--skip-bg); color: var(--skip); border-color: var(--skip-bd); }
+.nbtn { font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 0; font-weight: 500; transition: opacity 0.13s; }
+.nbtn:hover { opacity: 0.75; }
+.override-select {
+width: 100%; margin-top: 8px; font-size: 12.5px; font-family: var(--sans);
+background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px;
+padding: 6px 8px; color: var(--text); cursor: pointer;
+  }
+.tester-row { margin-top: 4px; margin-bottom: 16px; }
+.tester-label {
+font-size: 13px; font-weight: 600; color: var(--text);
+margin-bottom: 6px; display: block;
+  }
+.tester-input {
+width: 100%; font-size: 14px; font-family: var(--sans);
+background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius);
+padding: 9px 11px; color: var(--text); outline: none;
+transition: border-color 0.15s, box-shadow 0.15s;
+  }
+.tester-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.manual-tag {
+font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+color: var(--muted); font-weight: 600;
+  }
+.cnote {
+margin-top: 8px; font-size: 12px; color: var(--muted2);
+background: var(--surface2); border-radius: 5px;
+padding: 6px 8px; border-left: 2px solid var(--accent);
+font-style: italic; line-height: 1.45;
+  }
+
+.log-box {
+margin-top: 20px; background: var(--surface);
+border: 1px solid var(--border); border-radius: var(--radius);
+padding: 14px 16px; font-family: var(--mono); font-size: 12px;
+color: var(--muted2); max-height: 180px; overflow-y: auto;
+line-height: 1.7; box-shadow: var(--shadow);
+  }
+
+/* Settings */
+.info-note {
+font-size: 13px; color: var(--muted2);
+background: var(--accent-bg);
+border: 1px solid rgba(37,99,235,0.15);
+border-radius: var(--radius);
+padding: 10px 14px; margin-bottom: 20px; line-height: 1.6;
+  }
+.save-btn {
+padding: 9px 18px; background: var(--surface);
+border: 1px solid var(--border2); border-radius: var(--radius);
+color: var(--text); font-family: var(--sans); font-size: 13px;
+font-weight: 500; cursor: pointer; margin-top: 4px;
+transition: border-color 0.13s, color 0.13s;
+  }
+.save-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Modal */
+.overlay {
+display: none; position: fixed; inset: 0;
+background: rgba(0,0,0,0.3);
+backdrop-filter: blur(3px);
+z-index: 100; align-items: center; justify-content: center;
+  }
+.overlay.open { display: flex; }
+.modal {
+background: var(--surface); border: 1px solid var(--border2);
+border-radius: var(--radius-xl); padding: 24px;
+width: 360px; max-width: 92vw;
+box-shadow: var(--shadow-md);
+animation: pop 0.16s ease;
+  }
+@keyframes pop { from{transform:scale(0.96);opacity:0} to{transform:scale(1);opacity:1} }
+.modal h3 { font-size: 14px; font-weight: 500; margin-bottom: 12px; }
+.modal textarea {
+width: 100%; min-height: 88px;
+background: var(--surface2); border: 1px solid var(--border2);
+border-radius: var(--radius); padding: 10px;
+font-family: var(--sans); font-size: 13px; color: var(--text);
+resize: vertical; outline: none;
+transition: border-color 0.15s, box-shadow 0.15s;
+  }
+.modal textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.mactions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.btn-ghost {
+padding: 7px 14px; background: none;
+border: 1px solid var(--border2); border-radius: var(--radius);
+color: var(--muted2); cursor: pointer; font-size: 13px;
+transition: all 0.13s;
+  }
+.btn-ghost:hover { background: var(--surface2); color: var(--text); }
+.btn-primary {
+padding: 7px 16px; background: var(--accent); border: none;
+border-radius: var(--radius); color: #fff; cursor: pointer;
+font-size: 13px; font-weight: 500; transition: opacity 0.13s;
+  }
+.btn-primary:hover { opacity: 0.85; }
+
+/* Toast */
+.toast {
+position: fixed; bottom: 20px; right: 20px;
+background: var(--surface); border: 1px solid var(--border2);
+border-radius: var(--radius); padding: 10px 16px;
+font-size: 12px; color: var(--text); box-shadow: var(--shadow-md);
+z-index: 200; opacity: 0; transform: translateY(6px);
+transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+  }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+.empty { text-align: center; padding: 40px 16px; color: var(--muted); font-size: 13px; }
+
+.spin {
+display: inline-block; width: 13px; height: 13px;
+border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+border-radius: 50%; animation: spinning 0.65s linear infinite;
+vertical-align: middle;
+  }
+@keyframes spinning { to{transform:rotate(360deg)} }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- Topbar -->
+<div class="topbar">
+<div class="logo">
+<div class="logo-mark">
+<svg viewBox="0 0 12 12"><rect x="1" y="1" width="4" height="4" rx="1"/><rect x="7" y="1" width="4" height="4" rx="1"/><rect x="1" y="7" width="4" height="4" rx="1"/><rect x="7" y="7" width="4" height="4" rx="1"/></svg>
+</div>
+      Email Visual Tester
+</div>
+<div class="topbar-nav">
+<button class="nav-btn active" onclick="showPanel('new-run',this)">New run</button>
+<button class="nav-btn" onclick="showPanel('settings',this)">Settings</button>
+</div>
+<div class="topbar-right">
+<div class="running-badge" id="running-badge">
+<span class="pulse-dot"></span> <span id="running-badge-text">Running…</span>
+</div>
+</div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+<div class="sidebar-hd">Run history</div>
+<div class="run-list" id="run-list">
+<div class="empty" style="padding:20px 12px;font-size:11px;">No runs yet</div>
+</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+<!-- New Run -->
+<div class="panel active" id="panel-new-run">
+<div class="pg-title">New test run</div>
+<div class="pg-sub">Set up and launch a visual comparison</div>
+
+<div class="card">
+<div class="card-hd">Task</div>
+<div class="fg one">
+<div class="field">
+<label>Task name <span style="color:var(--fail)">*</span></label>
+<input id="taskName" type="text" placeholder="e.g. black-friday-v4" autocomplete="off" />
+</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-hd">Email on Acid test</div>
+<div class="fg one">
+<div class="field mono">
+<label>EOA test ID <span style="color:var(--fail)">*</span></label>
+<input id="eoaTestId" type="text" placeholder="e.g. J0wgVJhdcJBztQjVsn4Tg86Ae3ieUCPyR5rb1KfJjIRF5" autocomplete="off" />
+</div>
+</div>
+<p class="hint">The token from your EOA preview URL: <code>app.emailonacid.com/app/acidtest/<b>THIS_PART</b>/list</code>. Replaces pasting it into <code>.env</code> by hand.</p>
+</div>
+
+<div class="card">
+<div class="card-hd">Diff sensitivity</div>
+<div class="field">
+<label>Max diff pixel ratio — lower is stricter</label>
+<div class="slider-row">
+<input id="sensitivity" type="range" min="0" max="10" step="0.5" value="0"
+oninput="document.getElementById('sens-val').textContent=(+this.value).toFixed(1)+'%'" />
+<span class="slider-val" id="sens-val">0.0%</span>
+</div>
+</div>
+</div>
+
+<button class="run-cta" id="run-cta" onclick="startRun()">
+<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 2l7 4-7 4V2z"/></svg>
+        Run visual test
+</button>
+</div>
+
+<!-- Results -->
+<div class="panel" id="panel-results">
+<div class="res-title" id="res-title">—</div>
+<div class="res-meta" id="res-meta">—</div>
+<div class="tester-row" style="max-width:320px;">
+<label class="tester-label">Tester</label>
+<input type="text" id="run-tester-input" class="tester-input" placeholder="Who ran/reviewed this test?" />
+</div>
+<div style="display:flex; gap:8px; flex-wrap:wrap;">
+<button class="pdf-link" id="generate-report-btn" onclick="generateReport()">
+<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1h5l3 3v7H2V1zm5 0v3h3"/></svg>
+        Generate PDF report
+</button>
+<a class="pdf-link" id="pdf-link" target="_blank" rel="noopener">
+<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M2 1h5l3 3v7H2V1zm5 0v3h3"/></svg>
+        Download PDF report
+</a>
+<button class="pdf-link" id="rerun-btn" onclick="reRunCurrent()">
+<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 1a5 5 0 1 0 4.9 4H9.4A3.5 3.5 0 1 1 6 2.5V4l3-2-3-2v1z"/></svg>
+        Re-run this task
+</button>
+</div>
+<p class="hint" id="editable-hint" style="display:none;">Add notes or override a client's status below, then generate the PDF.</p>
+<div class="summary-strip" id="summary-strip"></div>
+<div class="filter-row">
+<button class="ftab active" onclick="setFilter('all',this)">All</button>
+<button class="ftab" onclick="setFilter('fail',this)">Failed</button>
+<button class="ftab" onclick="setFilter('pass',this)">Passed</button>
+<button class="ftab" onclick="setFilter('skip',this)">Skipped</button>
+</div>
+<div class="client-grid" id="client-grid"></div>
+<div class="log-box" id="log-box" style="display:none"></div>
+</div>
+
+<!-- Settings -->
+<div class="panel" id="panel-settings">
+<div class="pg-title">Settings</div>
+<div class="pg-sub">Credentials saved to your project's .env file</div>
+<div class="info-note">
+        Set these <strong>once</strong> — they're written to your project's <code style="font-family:var(--mono);font-size:11px;background:var(--surface2);padding:1px 5px;border-radius:4px;">.env</code> file and reused for every run automatically. The New Run tab never asks for them. The fields below always show blank for security (we don't echo saved secrets back) — that doesn't mean nothing is saved; check the status line below.
+</div>
+<p class="hint" id="creds-status" style="margin-bottom:16px;">Checking saved credentials…</p>
+<div class="card">
+<div class="card-hd">Email on Acid credentials</div>
+<div class="fg">
+<div class="field mono"><label>EMAILONACID_API_KEY</label><input id="cfg-key" type="password" placeholder="Enter API key" /></div>
+<div class="field mono"><label>EMAILONACID_ACCOUNT_PASSWORD</label><input id="cfg-pw" type="password" placeholder="Enter password" /></div>
+</div>
+</div>
+<button class="save-btn" onclick="saveSettings()">Save settings</button>
+</div>
+
+</div>
+</div>
+
+<!-- Annotation modal -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+<div class="modal">
+<h3 id="modal-hd">Add note</h3>
+<textarea id="modal-text" placeholder="e.g. Known Outlook rendering issue — ticket #42"></textarea>
+<div class="mactions">
+<button class="btn-ghost" onclick="closeModal()">Cancel</button>
+<button class="btn-primary" onclick="saveNote()">Save note</button>
+</div>
+</div>
+</div>
+
+<!-- Re-run modal -->
+<div class="overlay" id="rerun-overlay" onclick="if(event.target===this)closeRerunModal()">
+<div class="modal">
+<h3>Re-run — <span id="rerun-task-name"></span></h3>
+<div class="field mono" style="margin-bottom:12px;">
+<label>EOA test ID</label>
+<input id="rerun-eoa" type="text" placeholder="Paste a new ID for a new build, or leave as-is" />
+</div>
+<div class="field">
+<label>Diff sensitivity</label>
+<div class="slider-row">
+<input id="rerun-sensitivity" type="range" min="0" max="10" step="0.5" value="0"
+oninput="document.getElementById('rerun-sens-val').textContent=(+this.value).toFixed(1)+'%'" />
+<span class="slider-val" id="rerun-sens-val">0.0%</span>
+</div>
+</div>
+<p class="hint">Compares against the existing baseline for <code id="rerun-task-name-2"></code> — task name stays the same.</p>
+<div class="mactions">
+<button class="btn-ghost" onclick="closeRerunModal()">Cancel</button>
+<button class="btn-primary" onclick="confirmRerun()">Start re-run</button>
+</div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let activeFilter = 'all';
+let currentRunId = null;
+let annotating = null;
+let liveSSE = null;
+
+async function init() {
+await loadRuns();
+loadSettings();
+  }
+
+// Panels
+function showPanel(name, btn) {
+document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+document.getElementById('panel-' + name).classList.add('active');
+if (btn) btn.classList.add('active');
+  }
+
+// Sidebar
+async function loadRuns() {
+try {
+const runs = await api('/api/runs');
+renderSidebar(runs);
+    } catch(e) {}
+  }
+
+function renderSidebar(runs) {
+const el = document.getElementById('run-list');
+if (!runs.length) {
+el.innerHTML = '<div class="empty" style="padding:20px 12px;font-size:11px;">No runs yet</div>';
+return;
+    }
+el.innerHTML = runs.map(r => {
+const total = (r.passed||0) + (r.failed||0);
+const pw = total ? Math.round(((r.passed||0)/total)*44) : 0;
+const fw = total ? 44 - pw : 0;
+const icon = r.status === 'running' ? '⏳' : r.status === 'queued' ? '⏸' : r.status === 'passed' ? '✓' : '✗';
+return `<div class="run-item${r.id===currentRunId?' active':''}" data-run-id="${esc(r.id)}">
+        <div class="run-name">${esc(r.taskName)}</div>
+        <div class="run-meta">
+          <span>${icon}</span>
+          <span>${r.passed??'?'} / ${(r.passed||0)+(r.failed||0)} pass</span>
+          <div class="mini-bars">
+${pw?`<div class="mbar mbar-pass" style="width:${pw}px"></div>`:''}
+${fw?`<div class="mbar mbar-fail" style="width:${fw}px"></div>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+// Event delegation avoids building onclick="..." strings out of dynamic
+// data (task names, notes, etc.) which is unsafe if that text ever
+// contains a quote character.
+document.getElementById('run-list').addEventListener('click', (e) => {
+const item = e.target.closest('.run-item');
+if (!item) return;
+openRun(item.dataset.runId, item);
+});
+
+function openRun(id, el) {
+currentRunId = id;
+document.querySelectorAll('.run-item').forEach(x => x.classList.remove('active'));
+el.classList.add('active');
+document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+showPanel('results');
+loadRunResults(id);
+  }
+
+// Results
+async function loadRunResults(id) {
+try {
+const run = await api('/api/runs/'+id);
+renderResults(run);
+if (run.status === 'running' || run.status === 'queued') subscribeSSE(id);
+    } catch(e) {}
+  }
+
+function renderResults(run) {
+document.getElementById('res-title').textContent = run.taskName;
+const fin = run.finishedAt ? 'Finished '+timeAgo(run.finishedAt) : 'Running…';
+document.getElementById('res-meta').textContent = 'Started '+timeAgo(run.startedAt)+'  ·  '+fin;
+document.getElementById('run-tester-input').value = run.tester || '';
+
+const running = run.status === 'running' || run.status === 'queued';
+document.getElementById('running-badge').classList.toggle('show', running);
+document.getElementById('running-badge-text').textContent = run.status === 'queued' ? 'Queued…' : 'Running…';
+
+const pdfLink = document.getElementById('pdf-link');
+if (!running && run.reportPdfPath) {
+pdfLink.href = '/api/runs/' + run.id + '/report';
+pdfLink.classList.add('show');
+    } else {
+pdfLink.classList.remove('show');
+    }
+
+const rerunBtn = document.getElementById('rerun-btn');
+rerunBtn.classList.toggle('show', !running);
+
+document.getElementById('generate-report-btn').classList.toggle('show', !running);
+document.getElementById('editable-hint').style.display = (!running && (run.results||[]).length) ? 'block' : 'none';
+
+const strip = document.getElementById('summary-strip');
+strip.innerHTML = running
+? `<div class="chip chip-run"><span class="pulse-dot"></span> Running tests…</div>`
+: `<div class="chip chip-pass"><span class="chip-dot"></span>${run.passed??0} passed</div>
+         <div class="chip chip-fail"><span class="chip-dot"></span>${run.failed??0} failed</div>
+         <div class="chip chip-skip"><span class="chip-dot"></span>${run.skipped??0} skipped</div>`;
+
+renderGrid(run.results||[], run.id);
+
+const lb = document.getElementById('log-box');
+if (run.logs && run.logs.length) {
+lb.style.display = 'block';
+lb.innerHTML = run.logs.map(l=>`<div>${esc(l)}</div>`).join('');
+lb.scrollTop = lb.scrollHeight;
+    } else {
+lb.style.display = 'none';
+    }
+  }
+
+function renderGrid(results, runId) {
+const grid = document.getElementById('client-grid');
+const list = activeFilter==='all' ? results : results.filter(r=>r.status===activeFilter);
+if (!list.length) {
+grid.innerHTML = `<div class="empty" style="grid-column:1/-1">${results.length?'No results match this filter':'Waiting for results…'}</div>`;
+return;
+    }
+grid.innerHTML = list.map(r => {
+const eff = r.overrideStatus || r.status;
+const diff = r.diffPct!=null ? r.diffPct.toFixed(1)+'%' : '—';
+const note = r.note ? `<div class="cnote">${esc(r.note)}</div>` : '';
+const label = r.client||r.title;
+// Default to the diff heatmap for failures (that's what you're here to see),
+// the captured screenshot otherwise.
+const startMode = (r.status === 'fail' && r.diffUrl) ? 'diff' : 'actual';
+const startSrc = startMode === 'diff' ? r.diffUrl : (r.actualUrl || r.diffUrl);
+const canToggle = r.actualUrl && r.diffUrl;
+const manualTag = r.overrideStatus ? '<span class="manual-tag">manual</span>' : '';
+return `<div class="ccard ${eff}" data-actual="${esc(r.actualUrl||'')}" data-diff="${esc(r.diffUrl||'')}">
+        <div class="cthumb">
+          ${startSrc ? `<img class="cthumb-img" data-mode="${startMode}" src="${esc(startSrc)}" alt="${esc(label)}" />` : `<span>no image</span>`}
+          <span class="dtag dtag-${eff}">${diff}</span>
+          ${canToggle ? `<button class="thumb-toggle" title="Toggle captured / heatmap">${startMode === 'diff' ? '⇄ captured' : '⇄ heatmap'}</button>` : ''}
+        </div>
+        <div class="cbody">
+          <div class="cname">${esc(label)}</div>
+          <div class="csub">${esc(r.title||'')}</div>
+          <select class="override-select" data-run="${esc(runId)}" data-client="${esc(label)}">
+            <option value="" ${!r.overrideStatus?'selected':''}>Auto: ${r.status}</option>
+            <option value="pass" ${r.overrideStatus==='pass'?'selected':''}>Force pass</option>
+            <option value="fail" ${r.overrideStatus==='fail'?'selected':''}>Force fail</option>
+            <option value="skip" ${r.overrideStatus==='skip'?'selected':''}>Force skip</option>
+          </select>
+          <div class="crow">
+            <span class="spill spill-${eff}">${eff} ${manualTag}</span>
+            <button class="nbtn note-btn" data-run="${esc(runId)}" data-client="${esc(label)}" data-note="${esc(r.note||'')}">+ note</button>
+          </div>
+${note}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+document.getElementById('client-grid').addEventListener('click', (e) => {
+const toggleBtn = e.target.closest('.thumb-toggle');
+if (toggleBtn) {
+const card = toggleBtn.closest('.ccard');
+const img = card.querySelector('.cthumb-img');
+const showingDiff = img.dataset.mode === 'diff';
+img.src = showingDiff ? card.dataset.actual : card.dataset.diff;
+img.dataset.mode = showingDiff ? 'actual' : 'diff';
+toggleBtn.textContent = showingDiff ? '⇄ heatmap' : '⇄ captured';
+return;
+    }
+const noteBtn = e.target.closest('.note-btn');
+if (noteBtn) openNote(noteBtn.dataset.run, noteBtn.dataset.client, noteBtn.dataset.note);
+});
+
+document.getElementById('client-grid').addEventListener('change', async (e) => {
+const sel = e.target.closest('.override-select');
+if (!sel) return;
+const status = sel.value || null;
+try {
+await api('/api/runs/'+sel.dataset.run+'/override', {
+method: 'POST',
+body: JSON.stringify({ client: sel.dataset.client, status }),
+      });
+loadRunResults(sel.dataset.run);
+toast(status ? 'Status overridden to '+status : 'Reverted to auto-detected status');
+    } catch(e) {
+toast('Failed to update status: '+e.message, true);
+    }
+});
+
+document.getElementById('run-tester-input').addEventListener('change', async (e) => {
+if (!currentRunId) return;
+try {
+await api('/api/runs/'+currentRunId+'/tester', {
+method: 'POST',
+body: JSON.stringify({ tester: e.target.value.trim() }),
+      });
+toast('Tester saved');
+    } catch(err) {
+toast('Failed to save tester: '+err.message, true);
+    }
+});
+
+function setFilter(f, btn) {
+activeFilter = f;
+document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));
+btn.classList.add('active');
+if (currentRunId) loadRunResults(currentRunId);
+  }
+
+// SSE live stream
+function subscribeSSE(id) {
+if (liveSSE) liveSSE.close();
+liveSSE = new EventSource('/api/runs/'+id+'/stream');
+liveSSE.onmessage = async (e) => {
+const msg = JSON.parse(e.data);
+if (msg.type === 'log') {
+const lb = document.getElementById('log-box');
+lb.style.display = 'block';
+const d = document.createElement('div');
+d.textContent = msg.text;
+lb.appendChild(d);
+lb.scrollTop = lb.scrollHeight;
+      }
+if (msg.type === 'done') {
+liveSSE.close();
+document.getElementById('running-badge').classList.remove('show');
+renderResults(msg.run);
+await loadRuns();
+toast('Test run complete');
+      }
+    };
+  }
+
+// Start run
+// Shared by the New Run form and the Re-run button.
+async function launchRun({ taskName, eoaTestId, sensitivity }) {
+const { runId } = await api('/api/run', {
+method: 'POST',
+body: JSON.stringify({ taskName, eoaTestId, sensitivity }),
+    });
+currentRunId = runId;
+await loadRuns();
+document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+showPanel('results');
+loadRunResults(runId);
+subscribeSSE(runId);
+return runId;
+  }
+
+async function startRun() {
+const taskName = document.getElementById('taskName').value.trim();
+const eoaTestId = document.getElementById('eoaTestId').value.trim();
+const sensitivity = parseFloat(document.getElementById('sensitivity').value);
+if (!taskName) { toast('Task name is required', true); return; }
+if (!eoaTestId) { toast('EOA test ID is required', true); return; }
+
+const btn = document.getElementById('run-cta');
+btn.disabled = true;
+btn.innerHTML = '<span class="spin"></span> Starting…';
+
+try {
+await launchRun({ taskName, eoaTestId, sensitivity });
+toast('Run started');
+    } catch(e) {
+toast('Failed to start: '+e.message, true);
+    }
+btn.disabled = false;
+btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M3 2l7 4-7 4V2z"/></svg> Run visual test';
+  }
+
+// Re-runs the currently viewed task with the same EOA test ID and
+// sensitivity — e.g. running again once baselines exist from a first
+// (baseline-creating) run.
+// Opens the re-run modal, pre-filled with the current task's values.
+// Task name stays fixed (baselines are keyed to it); EOA test ID and
+// sensitivity are editable — e.g. paste a new EOA test ID for a new build.
+let rerunTaskName = null;
+async function reRunCurrent() {
+if (!currentRunId) return;
+try {
+const run = await api('/api/runs/'+currentRunId);
+rerunTaskName = run.taskName;
+document.getElementById('rerun-task-name').textContent = run.taskName;
+document.getElementById('rerun-task-name-2').textContent = run.taskName;
+document.getElementById('rerun-eoa').value = run.eoaTestId || '';
+document.getElementById('rerun-sensitivity').value = run.sensitivity || 0;
+document.getElementById('rerun-sens-val').textContent = (+(run.sensitivity||0)).toFixed(1)+'%';
+document.getElementById('rerun-overlay').classList.add('open');
+    } catch(e) {
+toast('Failed to load run details: '+e.message, true);
+    }
+  }
+function closeRerunModal() {
+document.getElementById('rerun-overlay').classList.remove('open');
+  }
+async function confirmRerun() {
+const eoaTestId = document.getElementById('rerun-eoa').value.trim();
+const sensitivity = parseFloat(document.getElementById('rerun-sensitivity').value);
+if (!eoaTestId) { toast('EOA test ID is required', true); return; }
+closeRerunModal();
+try {
+await launchRun({ taskName: rerunTaskName, eoaTestId, sensitivity });
+toast('Re-run started');
+    } catch(e) {
+toast('Failed to re-run: '+e.message, true);
+    }
+  }
+
+// Builds the PDF from whatever notes/overrides currently exist on the run
+// — called on demand (not automatically at run completion) so edits can
+// happen first.
+async function generateReport() {
+if (!currentRunId) return;
+const btn = document.getElementById('generate-report-btn');
+const original = btn.innerHTML;
+btn.innerHTML = '<span class="spin"></span> Generating…';
+try {
+await api('/api/runs/'+currentRunId+'/generate-report', { method:'POST' });
+await loadRunResults(currentRunId);
+toast('PDF report generated');
+    } catch(e) {
+toast('Failed to generate report: '+e.message, true);
+    }
+btn.innerHTML = original;
+  }
+
+// Notes
+function openNote(runId, client, existing) {
+annotating = { runId, client };
+document.getElementById('modal-hd').textContent = 'Note — '+client;
+document.getElementById('modal-text').value = existing||'';
+document.getElementById('overlay').classList.add('open');
+setTimeout(()=>document.getElementById('modal-text').focus(), 60);
+  }
+function closeModal() {
+document.getElementById('overlay').classList.remove('open');
+annotating = null;
+  }
+async function saveNote() {
+if (!annotating) return;
+const note = document.getElementById('modal-text').value.trim();
+await api('/api/runs/'+annotating.runId+'/annotate', {
+method: 'POST',
+body: JSON.stringify({ client: annotating.client, note }),
+    });
+closeModal();
+loadRunResults(annotating.runId);
+toast('Note saved');
+  }
+
+// Settings
+async function loadSettings() {
+try {
+const s = await api('/api/settings');
+const status = document.getElementById('creds-status');
+status.innerHTML = s.hasCredentials
+? '✓ Credentials are saved and in use for every run.'
+: '⚠ No credentials saved yet — enter them below once.';
+    } catch(e) {}
+  }
+async function saveSettings() {
+const settings = {
+EMAILONACID_API_KEY: document.getElementById('cfg-key').value,
+EMAILONACID_ACCOUNT_PASSWORD: document.getElementById('cfg-pw').value,
+    };
+try {
+await api('/api/settings', { method:'POST', body:JSON.stringify({settings}) });
+toast('Settings saved');
+    } catch(e) {
+toast('Failed to save: '+e.message, true);
+    }
+  }
+
+// Utils
+async function api(url, opts={}) {
+const res = await fetch(url, { headers:{'Content-Type':'application/json'}, ...opts });
+if (!res.ok) throw new Error(await res.text());
+return res.json();
+  }
+function esc(s) {
+return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+function timeAgo(iso) {
+if (!iso) return '—';
+const d = Math.floor((Date.now()-new Date(iso))/1000);
+if (d<60) return d+'s ago';
+if (d<3600) return Math.floor(d/60)+'m ago';
+if (d<86400) return Math.floor(d/3600)+'h ago';
+return Math.floor(d/86400)+'d ago';
+  }
+function toast(msg, err=false) {
+const t = document.getElementById('toast');
+t.textContent = msg;
+t.style.borderColor = err ? 'var(--fail-bd)' : 'var(--border2)';
+t.classList.add('show');
+setTimeout(()=>t.classList.remove('show'), 2600);
+  }
+
+init();
+</script>
+</body>
+</html>
