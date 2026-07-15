@@ -1,0 +1,12 @@
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+email-html-extractor/credentials.json
+.env
+
+# email-visual-tester-ui
+email-visual-tester-ui/data/
+email-visual-tester-ui/reports/
