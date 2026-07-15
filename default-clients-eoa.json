@@ -1,0 +1,68 @@
+{
+  "applemail16": {
+    "id": "applemail16",
+    "client": "Apple Mail 16",
+    "os": "macOS  13",
+    "category": "Application",
+    "default": true
+  },
+    "applemail16_dm": {
+    "id": "applemail16_dm",
+    "client": "Apple Mail 16",
+    "os": "macOS 13 (Dark Mode)",
+    "category": "Application",
+    "default": true
+  },
+    "m365_w11_lm_dt": {
+    "id": "m365_w11_lm_dt",
+    "client": "Outlook Microsoft 365",
+    "os": "Windows 11",
+    "category": "Application",
+    "default": true
+  },
+  "m365_w11_dm_dt": {
+    "id": "m365_w11_dm_dt",
+    "client": "Outlook Microsoft 365",
+    "os": "Windows 11 (Dark Mode)",
+    "category": "Application",
+    "default": true
+  },
+    "iphone16promax_18": {
+    "id": "iphone16promax_18",
+    "client": "iPhone 16 Pro Max",
+    "os": "iOS 18",
+    "category": "Mobile"
+  },
+    "iphone16promax_18_dm": {
+    "id": "iphone16promax_18_dm",
+    "client": "iPhone 16 Pro Max",
+    "os": "iOS 18 (Dark Mode)",
+    "category": "Mobile"
+  },
+    "iphone17promax_26": {
+    "id": "iphone17promax_26",
+    "client": "iPhone 17 Pro Max",
+    "os": "iOS 26",
+    "category": "Mobile"
+  },
+    "iphone17promax_26_dm": {
+    "id": "iphone17promax_26_dm",
+    "client": "iPhone 17 Pro Max",
+    "os": "iOS 26 (Dark Mode)",
+    "category": "Mobile"
+  },
+    "android16_gmailapp_pixel10_dm": {
+    "id": "android16_gmailapp_pixel10_dm",
+    "client": "Gmail App Pixel 10",
+    "os": "Android 13 (Dark Mode)",
+    "category": "Mobile",
+    "default": true
+  },
+    "android16_gmailapp_pixel10_lm": {
+    "id": "android16_gmailapp_pixel10_lm",
+    "client": "Gmail App Pixel 10",
+    "os": "Android 13",
+    "category": "Mobile",
+    "default": true
+  }  
+}
