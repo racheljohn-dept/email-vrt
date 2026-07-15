@@ -1,129 +1,88 @@
-# Email Visual Tester Framework
+# Email Visual Regression Tester
 
-[![GitHub Repository](https://img.shields.io/badge/GitHub-View%20Source-100000?style=for-the-badge&logo=github)](https://github.com/deptagency-dar/email-visual-tester)
+An email visual regression testing project created to conduct visual checks for email builds, capturing how it renders across real email clients, and comparing each render against a saved baseline to catch layout regressions. A browser UI sits on top of the underlying Playwright test suite so the team can run tests, review diffs, and generate reports without touching the command line.
 
-### 🧐 What is This?
+## Project structure
 
-This framework automates **email visual regression testing**.
+```
+email-vrt/
+  playwright.config.ts
+  tests/blueprint.spec.ts
+  src/                        # global-setup, EOA service, utils
+  visual-baselines/           # saved baseline screenshots per task
+  email-visual-tester-ui/     # web UI + server (this is what you run)
+    server.js
+    public/index.html
+```
 
-**Current Workflow:** The framework creates a test in our Email Testing Agent (currently **Email on Acid**) using a local **HTML file** you provide. It then uses the **Playwright Automation Test Framework** to automatically compare the resulting screenshots across various clients and devices against approved **Baseline Images**.
+## Prerequisites
 
-If the new image differs from the baseline, it generates a **Visual Comparison Heatmap** to show the exact pixels that changed, significantly speeding up QA sign-off.
+- Node.js 18+
+- An Email on Acid account (API key + account password)
+- An EOA test ID for the build you want to check (the token from your EOA preview URL)
+- Jira Cloud account, if you want the "Create Jira ticket" feature (optional)
 
----
+## 1. Clone
 
-### 🎯 Use Case: Quick Regression Check
+```bash
+git clone <repo-url>
+cd email-vrt
+```
 
-Imagine you're testing an email, and you find a **bug** (like broken spacing in Outlook) in the first staging build. Development fixes the issue and sends a **second build**.
+## 2. Install the root project
 
-Instead of manually checking *all* clients again, you run the **Visual Testing Framework**. It instantly confirms:
-1.  The bug is **fixed** in Outlook (the visual comparison fails as it finds some degreee of pixel diff).
-2.  **No new bugs** were accidentally introduced to other clients like Gmail or Apple Mail (all other comparisons pass meaning no new issues were introduced).
+```bash
+npm install
+npx playwright install
+```
 
-This framework allows you to perform a full **visual regression check** in minutes.
+## 3. Set up credentials
 
----
+Create a `.env` file in the project root (this is gitignored — never commit it):
 
-### ⚙️ Setup and Configuration
+```
+EMAIL_PREVIEW_SERVICE=emailonacid
+EMAILONACID_API_KEY=your_api_key
+EMAILONACID_ACCOUNT_PASSWORD=your_password
+```
 
-This section covers the initial setup and the critical configuration steps required for every test run.
+You can also skip this and enter credentials once via the UI's Settings tab instead — same file, same effect. The EOA test ID and task name are **not** set here; they're entered per run in the UI.
 
-#### Prerequisites
+## 4. Install the UI/server
 
-1.  **Node.js:** Ensure you have the latest stable version of **Node.js** installed.
-2.  **Access:** You need the **API Key** and **Account Password** for the Email Testing Agent (currently Email on Acid).
-3.  **Clone the Repository:**
-    ```bash
-    git clone [https://github.com/deptagency-dar/email-visual-tester.git](https://github.com/deptagency-dar/email-visual-tester.git)
-    cd email-visual-tester
-    ```
-4.  **Install Dependencies:**
-    ```bash
-    npm install
-    ```
+```bash
+cd email-visual-tester-ui
+npm install
+npx playwright install chromium
+```
 
-#### Configuration Steps (Critical)
+(This is a separate Playwright install from step 2 — it's only used to render PDF reports, not to run tests.)
 
-You must configure the `.env` file and the email's HTML file before every test run.
+## 5. Run it
 
-1.  **Configure the `.env` File (Environment Variables):**
-    * Find the configuration file (i.e., `.env` in the root folder).
-    * **Email Agent Credentials:** Define the service and provide the required credentials.
-        ```
-      EMAIL_PREVIEW_SERVICE= # Options: 'emailonacid', 'litmus'
+From inside `email-visual-tester-ui`:
 
-      EMAILONACID_API_KEY= # Your Email on Acid API Key
-      EMAILONACID_ACCOUNT_PASSWORD= # Your Email on Acid Account Password
-      EXISTING_EOA_TEST_ID= # Your Existing Email on Acid Test ID
+```bash
+npm start
+```
 
-      LITMUS_API_KEY= # Your Litmus API Key
-      EXISTING_LITMUS_EMAIL_GUID= # Your Existing Litmus Email GUID
-        ```
-    * **Define the Task:** Set the **eBay Task Name** that corresponds to the email you are testing. The framework uses this to find the correct blueprint.
-        ```
-        TASK_NAME= # Your Task Name e.g., "EB-22872 Staging"
-        ```
+Open **http://localhost:4500**.
 
-2.  **Place and Name the HTML File:**
-    * Place the finalized HTML file into the designated **`./emails`** folder.
-    * The file **must** follow the standard **eBay Naming Convention**:
-        * **Format:** `eb-(task number)-(staging)-(optional info).html`
-        * **Examples:**
-            * `eb-21397-staging.html`
-            * `eb-19999-staging-ES.html`
+### How to Run the Tests
 
----
-
-### ▶️ How to Run the Tests
-
-Once the framework is configured and the HTML file is correctly named, run the tests:
-
-1.  **Execute the Automation:**
-    * Open your terminal/command prompt inside the `email-visual-tester` folder.
-    * Run the main test script:
-        ```bash
-        npm test
-        ```
-
-### 🖼️ Baseline Creation (First Run)
+## Baseline Creation (First Run)
 
 When running the tests for the very first time on a new email or a new client combination, the framework will execute a specific sequence:
 
 1.  **Missing Baseline:** The comparison script will detect that the required baseline image does not exist.
 2.  **Expected Failure:** The test for that specific client **will fail** because no comparison could be made.
 3.  **Automatic Capture:** The framework will then **automatically save the newly rendered image** into the `/baselines` folder, naming it correctly.
-4.  **Action:** You must then **rerun the test (`npm test`)** immediately. The second time, the comparison will succeed, assuming the new image matches the newly created baseline.
+4.  **Action:** You must then **rerun the test** immediately. The second time, the comparison will succeed, assuming the new image matches the newly created baseline.
 
-### 📊 Understanding the Output
+## For every new task
 
-After the tests complete, a folder (e.g., `/test-results` or `/reports`) will be created containing the outputs. The **Visual Comparison Heatmap** is the critical file for QA sign-off.
-
-| Output File | Non-Technical Summary |
-| :--- | :--- |
-| **Test Report (HTML/JSON)** | The pass/fail scorecard for the entire test run. |
-| **Visual Comparison Heatmap (PNG/JPEG)** | **The image that tells you *exactly* where the problem is.** Red/pink areas are differences. |
-
----
-
-### 🚀 Future Enhancements and Next Steps
-
-This framework is continuously being improved. Here are the key tasks planned and desirable goals for the next development cycles:
-
-#### 1. Integration with Litmus (Planned Implementation)
-
-The immediate goal is to complete the integration with the **Litmus** platform.
-
-**Task:** Implement the `LitmusService` class, mirroring the structure of `email-on-acid-service.ts`.
-* **Goal:** Once implemented, the framework will be configured to perform visual tests **directly on emails received by the Litmus service**, eliminating the need for **manual HTML file extraction** and local placement in the `./emails` folder. This streamlines the entire workflow.
-
-#### 2. Better Reporting Tool (Desirable)
-
-We would like to find a dedicated library to upgrade the current reporting into a more professional, interactive, and visually clear format.
-
-* **Goal:** Provide a report that makes quick pass/fail assessment easier for the QA team, potentially by integrating with tools like Allure or Mochawesome.
-
-#### 3. CI/CD Pipeline Integration (Desirable)
-
-It is highly desirable to integrate this framework with a Continuous Integration/Continuous Deployment (CI/CD) pipeline.
-
-* **Goal:** Automatically run visual tests whenever new email HTML is checked in. This ensures tests are triggered automatically, reducing manual effort and enabling instant visual feedback.
+1. **Settings** — Enter EOA and Jira credentials once; they're saved to `.env` and reused automatically for every run after that.
+2. **New Run** — Paste the EOA test ID, enter a task name, set diff sensitivity, click Run.
+3. **First run** -  For a given task creates baseline images; later runs compare against them.
+4. **Results** — Each client card shows the captured screenshot with a toggle to the diff heatmap, pass/fail status, diff %. Override a status if a diff is a false positive, add a note, set who tested it, and click on generate report.
+5. **Generate PDF report** - Once all notes/overrides are finalized, then download it.
